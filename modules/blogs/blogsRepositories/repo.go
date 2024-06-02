@@ -10,7 +10,7 @@ import (
 // ========>>>> 3 Comboset
 type IBlogsRepositories interface {
 	GetAll() ([]blogs.Blog, error)
-	GetById(id int) (*blogs.Blog, error)
+	GetById(id string) (*blogs.Blog, error)
 	Post(req *blogs.BlogRequest) (*blogs.Blog, error)
 }
 
@@ -37,7 +37,7 @@ func (r *blogsRepositories) GetAll() ([]blogs.Blog, error) {
 	return blogs, nil
 }
 
-func (r *blogsRepositories) GetById(id int) (*blogs.Blog, error) {
+func (r *blogsRepositories) GetById(id string) (*blogs.Blog, error) {
 	var blog blogs.Blog
 	query := "SELECT * FROM blogs WHERE blog_id = $1"
 	err := r.db.Get(&blog, query, id)
@@ -50,7 +50,7 @@ func (r *blogsRepositories) GetById(id int) (*blogs.Blog, error) {
 func (r *blogsRepositories) Post(req *blogs.BlogRequest) (*blogs.Blog, error) {
 
 	query := "INSERT INTO blogs(user_id,title,content) VALUES ($1,$2,$3) RETURNING blog_id,created_at"
-	var id int
+	var id string
 	var created_at time.Time
 	err := r.db.QueryRow(query, req.UserId, req.Title, req.Content).Scan(&id, &created_at)
 	if err != nil {
@@ -65,3 +65,7 @@ func (r *blogsRepositories) Post(req *blogs.BlogRequest) (*blogs.Blog, error) {
 	}
 	return &blog, nil
 }
+
+//Update
+
+//Delete

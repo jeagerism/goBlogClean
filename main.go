@@ -22,35 +22,18 @@ func main() {
 		fmt.Println(db)
 	}
 
+	//==>BLOG ZONE
 	blogsRepositories := blogsrepositories.NewBlogsRepositories(db)
-	// _ = blogsRepositories
-
-	// blogs, err := blogsRepositories.GetAll()
-	// if err != nil {
-	// 	panic(err)
-	// }
-	// fmt.Println(blogs)
-
-	// blog, err := blogsRepositories.GetById(1)
-	// if err != nil {
-	// 	panic(err)
-	// }
-	// fmt.Println(blog)
-
-	// post, err := blogsRepositories.Post(mock)
-	// if err != nil {
-	// 	panic(err)
-	// }
-	// fmt.Println(post)
-
 	blogsUseCases := blogsusecases.NewBlogsUsecase(blogsRepositories)
 	blogsHandlers := blogshandlers.NewBlogsHandlers(blogsUseCases)
-
+	//==>BLOG ZONE
 	app := fiber.New(fiber.Config{
 		JSONEncoder: json.Marshal,
 		JSONDecoder: json.Unmarshal,
 	})
 	app.Get("/", blogsHandlers.FindBlogs)
+	app.Get("/:blogId", blogsHandlers.FindBlog)
+	app.Post("/post", blogsHandlers.PostBlog)
 	app.Listen(":8000")
 
 }
