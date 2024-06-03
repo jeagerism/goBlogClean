@@ -13,6 +13,8 @@ type IBlogsUsecases interface {
 	GetAllBlogs() ([]blogs.Blog, error)
 	GetBlogById(id string) (*blogs.Blog, error)
 	PostBlog(req *blogs.BlogRequest) (*blogs.Blog, error)
+	UpdateBlog(req *blogs.BlogUpdateRequest) (*blogs.Blog, error)
+	DeleteBlog(id string) error
 }
 
 func NewBlogsUsecase(blogsRepo blogsrepositories.IBlogsRepositories) IBlogsUsecases {
@@ -39,4 +41,20 @@ func (u *blogsUseCases) PostBlog(req *blogs.BlogRequest) (*blogs.Blog, error) {
 		return nil, err
 	}
 	return blog, nil
+}
+
+func (u *blogsUseCases) UpdateBlog(req *blogs.BlogUpdateRequest) (*blogs.Blog, error) {
+	blog, err := u.blogsRepo.Update(req)
+	if err != nil {
+		return nil, err
+	}
+	return blog, nil
+}
+
+func (u *blogsUseCases) DeleteBlog(id string) error {
+	err := u.blogsRepo.Delete(id)
+	if err != nil {
+		return err
+	}
+	return nil
 }

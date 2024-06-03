@@ -15,3 +15,9 @@ type BlogRequest struct {
 	Title   string `db:"title" json:"title"`
 	Content string `db:"content" json:"content"`
 }
+
+type BlogUpdateRequest struct {
+	Id      string `db:"blog_id" json:"blog_id"`
+	Title   string `db:"title" json:"title"`
+	Content string `db:"content" json:"content"`
+}

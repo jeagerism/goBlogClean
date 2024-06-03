@@ -1,6 +1,7 @@
 package blogsrepositories
 
 import (
+	"errors"
 	"time"
 
 	"github.com/jeagerism/goBlogClean/modules/blogs"
@@ -12,6 +13,8 @@ type IBlogsRepositories interface {
 	GetAll() ([]blogs.Blog, error)
 	GetById(id string) (*blogs.Blog, error)
 	Post(req *blogs.BlogRequest) (*blogs.Blog, error)
+	Update(req *blogs.BlogUpdateRequest) (*blogs.Blog, error)
+	Delete(id string) error
 }
 
 type blogsRepositories struct {
@@ -66,6 +69,45 @@ func (r *blogsRepositories) Post(req *blogs.BlogRequest) (*blogs.Blog, error) {
 	return &blog, nil
 }
 
-//Update
+// Update
+func (r *blogsRepositories) Update(req *blogs.BlogUpdateRequest) (*blogs.Blog, error) {
+	query := "UPDATE blogs SET title = $1, content = $2 WHERE blog_id = $3"
+	result, err := r.db.Exec(query, req.Title, req.Content, req.Id)
+	if err != nil {
+		return nil, err
+	}
 
-//Delete
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return nil, err
+	}
+
+	if rowsAffected == 0 {
+		return nil, errors.New("no rows affected")
+	}
+	blog, err := r.GetById(req.Id)
+	if err != nil {
+		return nil, err
+	}
+
+	return blog, nil
+}
+
+// Delete
+func (r *blogsRepositories) Delete(id string) error {
+	query := "DELETE FROM blogs WHERE blog_id = $1"
+	result, err := r.db.Exec(query, id)
+	if err != nil {
+		return err
+	}
+
+	rowsAffeted, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAffeted == 0 {
+		return errors.New("no rows affected")
+	}
+	return nil
+}

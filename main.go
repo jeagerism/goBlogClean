@@ -31,9 +31,12 @@ func main() {
 		JSONEncoder: json.Marshal,
 		JSONDecoder: json.Unmarshal,
 	})
+
 	app.Get("/", blogsHandlers.FindBlogs)
 	app.Get("/:blogId", blogsHandlers.FindBlog)
 	app.Post("/post", blogsHandlers.PostBlog)
+	app.Put("/update", blogsHandlers.UpdateBlog)
+	app.Delete("/:blogId", blogsHandlers.DeleteBlog)
 	app.Listen(":8000")
 
 }
