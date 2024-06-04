@@ -9,6 +9,9 @@ import (
 	blogshandlers "github.com/jeagerism/goBlogClean/modules/blogs/blogsHandlers"
 	blogsrepositories "github.com/jeagerism/goBlogClean/modules/blogs/blogsRepositories"
 	blogsusecases "github.com/jeagerism/goBlogClean/modules/blogs/blogsUsecases"
+	usershandlers "github.com/jeagerism/goBlogClean/modules/users/usersHandlers"
+	usersrepositories "github.com/jeagerism/goBlogClean/modules/users/usersRepositories"
+	usersusecases "github.com/jeagerism/goBlogClean/modules/users/usersUsecases"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 )
@@ -27,6 +30,12 @@ func main() {
 	blogsUseCases := blogsusecases.NewBlogsUsecase(blogsRepositories)
 	blogsHandlers := blogshandlers.NewBlogsHandlers(blogsUseCases)
 	//==>BLOG ZONE
+
+	//==> USER ZONE
+	usersRepositories := usersrepositories.NewUserRepositories(db)
+	usersUsecases := usersusecases.NewUsersUsecases(usersRepositories)
+	usersHandlers := usershandlers.NewUsersHandlers(usersUsecases)
+
 	app := fiber.New(fiber.Config{
 		JSONEncoder: json.Marshal,
 		JSONDecoder: json.Unmarshal,
@@ -37,6 +46,8 @@ func main() {
 	app.Post("/post", blogsHandlers.PostBlog)
 	app.Put("/update", blogsHandlers.UpdateBlog)
 	app.Delete("/:blogId", blogsHandlers.DeleteBlog)
+
+	app.Post("/signup", usersHandlers.Signup)
 	app.Listen(":8000")
 
 }
