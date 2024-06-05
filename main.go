@@ -39,6 +39,7 @@ func main() {
 	usersUsecases := usersusecases.NewUsersUsecases(usersRepositories)
 	usersHandlers := usershandlers.NewUsersHandlers(usersUsecases)
 	//==> USER ZONE
+
 	app := fiber.New(fiber.Config{
 		JSONEncoder: json.Marshal,
 		JSONDecoder: json.Unmarshal,
@@ -48,6 +49,7 @@ func main() {
 	midRepo := middlewareRepository.NewMiddlewareRepository(db)
 	midUse := middlewareUsecase.NewMiddlewareUsecase(midRepo)
 	midHand := middlewareHandler.NewMiddlewareHandler(midUse)
+	//==> MIDDLEWARE
 
 	app.Get("/", blogsHandlers.FindBlogs)
 	app.Get("/:blogId", blogsHandlers.FindBlog)
