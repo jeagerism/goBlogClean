@@ -12,6 +12,7 @@ type usersHandlers struct {
 
 type IUsersHandlers interface {
 	Signup(c *fiber.Ctx) error
+	Login(c *fiber.Ctx) error
 }
 
 func NewUsersHandlers(userUse usersusecases.IUsersUsecases) IUsersHandlers {
@@ -24,13 +25,31 @@ func (h *usersHandlers) Signup(c *fiber.Ctx) error {
 	req := new(users.SignupRequest)
 	err := c.BodyParser(req)
 	if err != nil {
-		return c.Status(fiber.ErrBadRequest.Code).JSON("body error")
+		return c.Status(fiber.ErrBadRequest.Code).JSON(fiber.Map{"error": "Invalid request body"})
 	}
 
 	user, err := h.userUse.Signup(req)
 	if err != nil {
-		return c.Status(fiber.ErrInternalServerError.Code).JSON("signup failed")
+		return c.Status(fiber.ErrInternalServerError.Code).JSON(fiber.Map{"error": "Signup failed"})
 	}
 
 	return c.Status(fiber.StatusCreated).JSON(user)
+}
+
+func (h *usersHandlers) Login(c *fiber.Ctx) error {
+	req := new(users.LoginRequest)
+	err := c.BodyParser(req)
+	if err != nil {
+		return c.Status(fiber.ErrBadRequest.Code).JSON(fiber.Map{"error": "Invalid request body"})
+	}
+
+	user, err := h.userUse.Login(req)
+	if err != nil {
+		if err == usersusecases.ErrUserNotFound || err == usersusecases.ErrInvalidPassword {
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Invalid username or password"})
+		}
+		return c.Status(fiber.ErrInternalServerError.Code).JSON(fiber.Map{"error": "Login failed"})
+	}
+
+	return c.Status(fiber.StatusOK).JSON(user)
 }

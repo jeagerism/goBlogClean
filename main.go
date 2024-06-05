@@ -48,6 +48,7 @@ func main() {
 	app.Delete("/:blogId", blogsHandlers.DeleteBlog)
 
 	app.Post("/signup", usersHandlers.Signup)
+	app.Post("/login", usersHandlers.Login)
 	app.Listen(":8000")
 
 }

@@ -11,6 +11,7 @@ type userRepositories struct {
 
 type IUserRepositories interface {
 	CreateUser(req *users.SignupRequest) (*users.User, error)
+	GetUser(req *users.LoginRequest) (*users.User, error)
 }
 
 func NewUserRepositories(db *sqlx.DB) IUserRepositories {
@@ -38,6 +39,11 @@ func (r *userRepositories) CreateUser(req *users.SignupRequest) (*users.User, er
 	return user, nil
 }
 
-//GetUserById
+// Login
+func (r *userRepositories) GetUser(req *users.LoginRequest) (*users.User, error) {
+	query := "SELECT * FROM users WHERE username = $1"
+	var user users.User
+	r.db.Get(&user, query, req.Username)
 
-//Login
+	return &user, nil
+}
