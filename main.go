@@ -9,6 +9,9 @@ import (
 	blogshandlers "github.com/jeagerism/goBlogClean/modules/blogs/blogsHandlers"
 	blogsrepositories "github.com/jeagerism/goBlogClean/modules/blogs/blogsRepositories"
 	blogsusecases "github.com/jeagerism/goBlogClean/modules/blogs/blogsUsecases"
+	middlewareHandler "github.com/jeagerism/goBlogClean/modules/middlewares/mid_hand"
+	middlewareRepository "github.com/jeagerism/goBlogClean/modules/middlewares/mid_repo"
+	middlewareUsecase "github.com/jeagerism/goBlogClean/modules/middlewares/mid_use"
 	usershandlers "github.com/jeagerism/goBlogClean/modules/users/usersHandlers"
 	usersrepositories "github.com/jeagerism/goBlogClean/modules/users/usersRepositories"
 	usersusecases "github.com/jeagerism/goBlogClean/modules/users/usersUsecases"
@@ -35,17 +38,22 @@ func main() {
 	usersRepositories := usersrepositories.NewUserRepositories(db)
 	usersUsecases := usersusecases.NewUsersUsecases(usersRepositories)
 	usersHandlers := usershandlers.NewUsersHandlers(usersUsecases)
-
+	//==> USER ZONE
 	app := fiber.New(fiber.Config{
 		JSONEncoder: json.Marshal,
 		JSONDecoder: json.Unmarshal,
 	})
 
+	//==> MIDDLEWARE
+	midRepo := middlewareRepository.NewMiddlewareRepository(db)
+	midUse := middlewareUsecase.NewMiddlewareUsecase(midRepo)
+	midHand := middlewareHandler.NewMiddlewareHandler(midUse)
+
 	app.Get("/", blogsHandlers.FindBlogs)
 	app.Get("/:blogId", blogsHandlers.FindBlog)
-	app.Post("/post", blogsHandlers.PostBlog)
-	app.Put("/update", blogsHandlers.UpdateBlog)
-	app.Delete("/:blogId", blogsHandlers.DeleteBlog)
+	app.Post("/post", midHand.CheckRole(), blogsHandlers.PostBlog)
+	app.Put("/update", midHand.CheckRole(), blogsHandlers.UpdateBlog)
+	app.Delete("/:blogId", midHand.CheckRole(), blogsHandlers.DeleteBlog)
 
 	app.Post("/signup", usersHandlers.Signup)
 	app.Post("/login", usersHandlers.Login)

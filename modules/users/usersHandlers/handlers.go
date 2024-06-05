@@ -32,6 +32,7 @@ func (h *usersHandlers) Signup(c *fiber.Ctx) error {
 	if err != nil {
 		return c.Status(fiber.ErrInternalServerError.Code).JSON(fiber.Map{"error": "Signup failed"})
 	}
+	c.Locals("userId", user.Id)
 
 	return c.Status(fiber.StatusCreated).JSON(user)
 }
@@ -50,6 +51,7 @@ func (h *usersHandlers) Login(c *fiber.Ctx) error {
 		}
 		return c.Status(fiber.ErrInternalServerError.Code).JSON(fiber.Map{"error": "Login failed"})
 	}
+	c.Locals("userId", user.Id)
 
 	return c.Status(fiber.StatusOK).JSON(user)
 }

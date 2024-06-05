@@ -7,7 +7,7 @@ type middlewareRepository struct {
 }
 
 type IMiddlewareRepository interface {
-	GetUserRole(userID string) (string, error)
+	GetUserRole(userID string) (bool, error)
 }
 
 func NewMiddlewareRepository(db *sqlx.DB) IMiddlewareRepository {
@@ -16,12 +16,12 @@ func NewMiddlewareRepository(db *sqlx.DB) IMiddlewareRepository {
 	}
 }
 
-func (repo *middlewareRepository) GetUserRole(userID string) (string, error) {
+func (repo *middlewareRepository) GetUserRole(userID string) (bool, error) {
 	var role bool
 	query := "SELECT role FROM users WHERE user_id = $1"
 	err := repo.db.Get(&role, query, userID)
 	if err != nil {
-		return "", err
+		return false, err
 	}
-	return "admin", nil
+	return role, nil
 }
