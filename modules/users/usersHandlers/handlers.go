@@ -44,7 +44,7 @@ func (h *usersHandlers) Login(c *fiber.Ctx) error {
 		return c.Status(fiber.ErrBadRequest.Code).JSON(fiber.Map{"error": "Invalid request body"})
 	}
 
-	user, err := h.userUse.Login(req)
+	user, token, err := h.userUse.Login(req)
 	if err != nil {
 		if err == usersusecases.ErrUserNotFound || err == usersusecases.ErrInvalidPassword {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Invalid username or password"})
@@ -53,5 +53,8 @@ func (h *usersHandlers) Login(c *fiber.Ctx) error {
 	}
 	c.Locals("userId", user.Id)
 
-	return c.Status(fiber.StatusOK).JSON(user)
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"data":  user,
+		"token": token,
+	})
 }

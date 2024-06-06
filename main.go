@@ -53,9 +53,9 @@ func main() {
 
 	app.Get("/", blogsHandlers.FindBlogs)
 	app.Get("/:blogId", blogsHandlers.FindBlog)
-	app.Post("/post", midHand.CheckRole(), blogsHandlers.PostBlog)
-	app.Put("/update", midHand.CheckRole(), blogsHandlers.UpdateBlog)
-	app.Delete("/:blogId", midHand.CheckRole(), blogsHandlers.DeleteBlog)
+	app.Post("/post", midHand.CheckToken(), midHand.CheckRole(), blogsHandlers.PostBlog)
+	app.Put("/update", midHand.CheckToken(), midHand.CheckRole(), blogsHandlers.UpdateBlog)
+	app.Delete("/:blogId", midHand.CheckToken(), midHand.CheckRole(), blogsHandlers.DeleteBlog)
 
 	app.Post("/signup", usersHandlers.Signup)
 	app.Post("/login", usersHandlers.Login)

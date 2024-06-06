@@ -1,6 +1,8 @@
 package midhand
 
 import (
+	"strings"
+
 	"github.com/gofiber/fiber/v2"
 	middlewareUsecase "github.com/jeagerism/goBlogClean/modules/middlewares/mid_use"
 )
@@ -11,6 +13,7 @@ type middlewareHandler struct {
 
 type IMiddlewareHandler interface {
 	CheckRole() fiber.Handler
+	CheckToken() fiber.Handler
 }
 
 func NewMiddlewareHandler(middlewareUsecase middlewareUsecase.IMiddlewareUsecase) IMiddlewareHandler {
@@ -39,6 +42,35 @@ func (h *middlewareHandler) CheckRole() fiber.Handler {
 		}
 
 		// ถ้า role ถูกต้อง ให้ดำเนินการต่อ
+		return c.Next()
+	}
+}
+
+func (h *middlewareHandler) CheckToken() fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		// Get the Authorization header
+		tokenString := c.Get("Authorization")
+		if tokenString == "" {
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+				"error": "Missing or malformed JWT",
+			})
+		}
+
+		// Check if the token string starts with "Bearer"
+		if !strings.HasPrefix(tokenString, "Bearer ") {
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+				"error": "Missing or malformed JWT",
+			})
+		}
+
+		// Remove "Bearer " prefix
+		tokenString = tokenString[len("Bearer "):]
+
+		// Verify the token
+		err := h.middlewareUsecase.VerifyToken(tokenString)
+		if err != nil {
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Invalid or expired JWT"})
+		}
 		return c.Next()
 	}
 }
