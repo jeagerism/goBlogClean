@@ -2,6 +2,7 @@ package blogsrepositories
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/jeagerism/goBlogClean/modules/blogs"
@@ -10,7 +11,7 @@ import (
 
 // ========>>>> 3 Comboset
 type IBlogsRepositories interface {
-	GetAll() ([]blogs.Blog, error)
+	GetAll(page, limit int) ([]blogs.Blog, *blogs.Pagination, error)
 	GetById(id string) (*blogs.Blog, error)
 	Post(req *blogs.BlogRequest) (*blogs.Blog, error)
 	Update(req *blogs.BlogUpdateRequest) (*blogs.Blog, error)
@@ -30,14 +31,24 @@ func NewBlogsRepositories(db *sqlx.DB) IBlogsRepositories {
 // ========>>>> 3 Comboset
 
 // *[] for check nil [] for check len = 0
-func (r *blogsRepositories) GetAll() ([]blogs.Blog, error) {
+func (r *blogsRepositories) GetAll(page, limit int) ([]blogs.Blog, *blogs.Pagination, error) {
 	var blogs []blogs.Blog
-	query := "SELECT * FROM blogs"
-	err := r.db.Select(&blogs, query)
-	if err != nil {
-		return nil, err
+	if page <= 0 {
+		page = 1
 	}
-	return blogs, nil
+	if limit <= 0 {
+		limit = 10
+	}
+
+	offset := limit * (page - 1)
+	query := "SELECT * FROM blogs ORDER BY id LIMIT $1 OFFSET $2"
+	err := r.db.Select(&blogs, query, limit, offset)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	pagination := pagination(r.db, "blogs", limit, page)
+	return blogs, pagination, nil
 }
 
 func (r *blogsRepositories) GetById(id string) (*blogs.Blog, error) {
@@ -110,4 +121,43 @@ func (r *blogsRepositories) Delete(id string) error {
 		return errors.New("no rows affected")
 	}
 	return nil
+}
+
+// Pagination
+func pagination(db *sqlx.DB, table string, limit, page int) *blogs.Pagination {
+	var tmpl blogs.Pagination
+	var recordCount int
+
+	// คำสั่ง SQL สำหรับการนับจำนวนเรคคอร์ดทั้งหมดในตารางที่ระบุ
+	sqlCount := fmt.Sprintf("SELECT count(id) FROM %s", table)
+
+	// ดึงจำนวนเรคคอร์ดทั้งหมดจากฐานข้อมูล
+	db.QueryRow(sqlCount).Scan(&recordCount)
+
+	// คำนวณหน้าทั้งหมด
+	total := (recordCount / limit)
+
+	reminder := (recordCount % limit)
+	if reminder == 0 {
+		tmpl.TotalPage = total
+	} else {
+		tmpl.TotalPage = total + 1
+	}
+
+	// ตั้งค่าหน้าปัจจุบันและจำนวนรายการต่อหน้า
+	tmpl.CurrentPage = page
+	tmpl.RecordPerPage = limit
+
+	// คำนวณหน้าถัดไปและหน้าก่อนหน้า
+	if page <= 0 {
+		tmpl.Next = 1
+	} else if page < tmpl.TotalPage {
+		tmpl.Previous = page - 1
+		tmpl.Next = page + 1
+	} else if page == tmpl.TotalPage {
+		tmpl.Previous = page - 1
+		tmpl.Next = 0
+	}
+
+	return &tmpl
 }

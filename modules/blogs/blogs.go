@@ -21,3 +21,12 @@ type BlogUpdateRequest struct {
 	Title   string `db:"title" json:"title"`
 	Content string `db:"content" json:"content"`
 }
+
+// Pagination Object
+type Pagination struct {
+	TotalPage     int `json:"total_page"`
+	CurrentPage   int `json:"current_page"`
+	RecordPerPage int `json:"record_per_page"`
+	Next          int `json:"next,omitempty"`
+	Previous      int `json:"previous,omitempty"`
+}

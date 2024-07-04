@@ -28,6 +28,7 @@ func main() {
 		fmt.Println(db)
 	}
 
+	// Dependency Injection
 	//==>BLOG ZONE
 	blogsRepositories := blogsrepositories.NewBlogsRepositories(db)
 	blogsUseCases := blogsusecases.NewBlogsUsecase(blogsRepositories)

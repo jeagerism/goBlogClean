@@ -10,7 +10,7 @@ type blogsUseCases struct {
 }
 
 type IBlogsUsecases interface {
-	GetAllBlogs() ([]blogs.Blog, error)
+	GetAllBlogs(page, limit int) ([]blogs.Blog, *blogs.Pagination, error)
 	GetBlogById(id string) (*blogs.Blog, error)
 	PostBlog(req *blogs.BlogRequest) (*blogs.Blog, error)
 	UpdateBlog(req *blogs.BlogUpdateRequest) (*blogs.Blog, error)
@@ -23,8 +23,12 @@ func NewBlogsUsecase(blogsRepo blogsrepositories.IBlogsRepositories) IBlogsUseca
 	}
 }
 
-func (u *blogsUseCases) GetAllBlogs() ([]blogs.Blog, error) {
-	return u.blogsRepo.GetAll()
+func (u *blogsUseCases) GetAllBlogs(page, limit int) ([]blogs.Blog, *blogs.Pagination, error) {
+	blogs, paginate, err := u.blogsRepo.GetAll(page, limit)
+	if err != nil {
+		return nil, nil, err
+	}
+	return blogs, paginate, nil
 }
 
 func (u *blogsUseCases) GetBlogById(id string) (*blogs.Blog, error) {

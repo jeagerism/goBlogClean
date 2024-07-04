@@ -16,7 +16,7 @@ type IBlogsHandlers interface {
 	FindBlogs(c *fiber.Ctx) error
 	FindBlog(c *fiber.Ctx) error
 	PostBlog(c *fiber.Ctx) error
-	UpdateBlog(c *fiber.Ctx) error // เพิ่มฟังก์ชัน UpdateBlog ใน Interface
+	UpdateBlog(c *fiber.Ctx) error
 	DeleteBlog(c *fiber.Ctx) error
 }
 
@@ -27,11 +27,18 @@ func NewBlogsHandlers(blogsUsecases blogsusecases.IBlogsUsecases) IBlogsHandlers
 }
 
 func (h *blogsHandlers) FindBlogs(c *fiber.Ctx) error {
-	blogs, err := h.blogsUsecases.GetAllBlogs()
+	page := c.QueryInt("page", 1)    // ใช้ QueryInt เพื่อแปลงค่าที่ส่งมาเป็น int
+	limit := c.QueryInt("limit", 10) // ค่า default คือ 10
+
+	blogs, pagination, err := h.blogsUsecases.GetAllBlogs(page, limit)
 	if err != nil {
-		return fiber.NewError(fiber.ErrInternalServerError.Code, "data not found")
+		return fiber.NewError(fiber.ErrInternalServerError.Code, "Data not found")
 	}
-	return c.Status(fiber.StatusOK).JSON(blogs)
+
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"data":     blogs,
+		"paginate": pagination,
+	})
 }
 
 func (h *blogsHandlers) FindBlog(c *fiber.Ctx) error {
@@ -80,7 +87,7 @@ func (h *blogsHandlers) PostBlog(c *fiber.Ctx) error {
 
 func (h *blogsHandlers) UpdateBlog(c *fiber.Ctx) error {
 	request := new(blogs.BlogUpdateRequest)
-	if err := c.BodyParser(request); err != nil { // ตรวจสอบการ parse request body
+	if err := c.BodyParser(request); err != nil {
 		return c.Status(fiber.ErrBadRequest.Code).JSON(fiber.Map{
 			"error":   true,
 			"message": "Failed to parse blog update request",
@@ -117,8 +124,10 @@ func (h *blogsHandlers) DeleteBlog(c *fiber.Ctx) error {
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error":   true,
-			"message": "Update Failed",
+			"message": "Failed to delete blog",
 		})
 	}
-	return c.Status(fiber.StatusOK).JSON("delete success!")
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"message": "Delete success!",
+	})
 }
