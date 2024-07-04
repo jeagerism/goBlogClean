@@ -41,7 +41,7 @@ func (r *blogsRepositories) GetAll(page, limit int) ([]blogs.Blog, *blogs.Pagina
 	}
 
 	offset := limit * (page - 1)
-	query := "SELECT * FROM blogs ORDER BY id LIMIT $1 OFFSET $2"
+	query := "SELECT * FROM blogs ORDER BY blog_id LIMIT $1 OFFSET $2"
 	err := r.db.Select(&blogs, query, limit, offset)
 	if err != nil {
 		return nil, nil, err
@@ -129,7 +129,7 @@ func pagination(db *sqlx.DB, table string, limit, page int) *blogs.Pagination {
 	var recordCount int
 
 	// คำสั่ง SQL สำหรับการนับจำนวนเรคคอร์ดทั้งหมดในตารางที่ระบุ
-	sqlCount := fmt.Sprintf("SELECT count(id) FROM %s", table)
+	sqlCount := fmt.Sprintf("SELECT count(blog_id) FROM %s", table)
 
 	// ดึงจำนวนเรคคอร์ดทั้งหมดจากฐานข้อมูล
 	db.QueryRow(sqlCount).Scan(&recordCount)
