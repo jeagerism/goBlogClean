@@ -1,6 +1,4 @@
 # Cloud Build: test → build image → push to Artifact Registry → deploy Cloud Run
-# Trigger this pipeline from Cloud Build triggers or: gcloud builds submit --config=cloudbuild.yaml
-
 steps:
   # Step 1 — unit tests
   - id: test
@@ -13,7 +11,7 @@ steps:
         go mod download
         go test -v ./...
 
-  # Step 2 — Docker build (tags for Artifact Registry)
+  # Step 2 — Docker build
   - id: build-image
     name: gcr.io/cloud-builders/docker
     args:
@@ -24,7 +22,7 @@ steps:
       - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_GAR_REPO}/${_SERVICE_NAME}:latest'
       - .
 
-  # Step 3 — push both tags (SHORT_SHA is set by Cloud Build triggers; for manual runs pass --substitutions=SHORT_SHA=$(git rev-parse --short HEAD))
+  # Step 3 — push image
   - id: push-image
     name: gcr.io/cloud-builders/docker
     entrypoint: bash
@@ -35,7 +33,7 @@ steps:
         docker push "${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_GAR_REPO}/${_SERVICE_NAME}:${SHORT_SHA}"
         docker push "${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_GAR_REPO}/${_SERVICE_NAME}:latest"
 
-  # Step 4 — deploy to Cloud Run
+  # Step 4 — deploy to Cloud Run (เชื่อมต่อ Secret Manager ตรงนี้)
   - id: deploy-cloud-run
     name: gcr.io/google.com/cloudsdktool/cloud-sdk
     entrypoint: gcloud
@@ -50,7 +48,8 @@ steps:
       - '--cpu=1'
       - '--max-instances=3'
       - '--allow-unauthenticated'
-      - '--set-env-vars=DATABASE_URL=${_DATABASE_URL},JWT_SECRET=${_JWT_SECRET}'
+      # แก้ไขจุดนี้: ดึงค่าจาก Secret Manager มาใส่ใน Env ของแอป
+      - '--set-secrets=DATABASE_URL=DB_URL:latest,JWT_SECRET=JWT_SECRET:latest'
 
 options:
   logging: CLOUD_LOGGING_ONLY
@@ -59,6 +58,4 @@ substitutions:
   _REGION: asia-southeast1
   _GAR_REPO: goblogclean-gar
   _SERVICE_NAME: goblogclean
-  # Replace via trigger overrides or Secret Manager in production; avoid real secrets in repo.
-  _DATABASE_URL: postgres://user:password@localhost:5432/mydatabase?sslmode=disable
-  _JWT_SECRET: replace-me-use-secret-manager-for-production
+  # ลบ _DATABASE_URL และ _JWT_SECRET ออกจากที่นี่แล้ว เพราะใช้ Secret Manager แทน
