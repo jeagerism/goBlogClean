@@ -1,0 +1,64 @@
+# Cloud Build: test → build image → push to Artifact Registry → deploy Cloud Run
+# Trigger this pipeline from Cloud Build triggers or: gcloud builds submit --config=cloudbuild.yaml
+
+steps:
+  # Step 1 — unit tests
+  - id: test
+    name: golang:1.21
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        set -euo pipefail
+        go mod download
+        go test -v ./...
+
+  # Step 2 — Docker build (tags for Artifact Registry)
+  - id: build-image
+    name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_GAR_REPO}/${_SERVICE_NAME}:$SHORT_SHA'
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_GAR_REPO}/${_SERVICE_NAME}:latest'
+      - .
+
+  # Step 3 — push both tags (SHORT_SHA is set by Cloud Build triggers; for manual runs pass --substitutions=SHORT_SHA=$(git rev-parse --short HEAD))
+  - id: push-image
+    name: gcr.io/cloud-builders/docker
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        set -eo pipefail
+        docker push "${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_GAR_REPO}/${_SERVICE_NAME}:${SHORT_SHA}"
+        docker push "${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_GAR_REPO}/${_SERVICE_NAME}:latest"
+
+  # Step 4 — deploy to Cloud Run
+  - id: deploy-cloud-run
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    entrypoint: gcloud
+    args:
+      - run
+      - deploy
+      - '${_SERVICE_NAME}'
+      - '--image=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_GAR_REPO}/${_SERVICE_NAME}:$SHORT_SHA'
+      - '--region=${_REGION}'
+      - '--platform=managed'
+      - '--memory=256Mi'
+      - '--cpu=1'
+      - '--max-instances=3'
+      - '--allow-unauthenticated'
+      - '--set-env-vars=DATABASE_URL=${_DATABASE_URL},JWT_SECRET=${_JWT_SECRET}'
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+
+substitutions:
+  _REGION: asia-southeast1
+  _GAR_REPO: goblogclean-gar
+  _SERVICE_NAME: goblogclean
+  # Replace via trigger overrides or Secret Manager in production; avoid real secrets in repo.
+  _DATABASE_URL: postgres://user:password@localhost:5432/mydatabase?sslmode=disable
+  _JWT_SECRET: replace-me-use-secret-manager-for-production

@@ -1,56 +1,31 @@
 package miduse
 
 import (
-	"errors"
-
 	"github.com/golang-jwt/jwt/v5"
-	middlewareRepository "github.com/jeagerism/goBlogClean/modules/middlewares/mid_repo"
+	"github.com/jeagerism/goBlogClean/internal/jwtclaims"
 )
 
 type middlewareUsecase struct {
-	middlewareRepo middlewareRepository.IMiddlewareRepository
+	jwtSecret []byte
 }
-
-var (
-	ErrUnauthorized = errors.New("unauthorized access")
-	ErrInvalidToken = errors.New("invalid token")
-)
 
 type IMiddlewareUsecase interface {
-	CheckUserRole(userId string) (string, error)
-	VerifyToken(tokenString string) error
+	ParseAccessToken(tokenString string) (*jwtclaims.AccessClaims, error)
 }
 
-func NewMiddlewareUsecase(middlewareRepo middlewareRepository.IMiddlewareRepository) IMiddlewareUsecase {
+func NewMiddlewareUsecase(jwtSecret string) IMiddlewareUsecase {
 	return &middlewareUsecase{
-		middlewareRepo: middlewareRepo,
+		jwtSecret: []byte(jwtSecret),
 	}
 }
 
-func (u *middlewareUsecase) CheckUserRole(userId string) (string, error) {
-	role, err := u.middlewareRepo.GetUserRole(userId)
-	if err != nil {
-		return "", err
-	}
-	if !role {
-		return "you are user", ErrUnauthorized
-	}
-	return "admin", nil
-}
-
-func (u *middlewareUsecase) VerifyToken(tokenString string) error {
-	//ฟังก์ชัน callback ที่ส่งไปให้ jwt.Parse จะคืนค่า secret key ที่ใช้ในการตรวจสอบลายเซ็นของ token
-	token, err := jwt.Parse(tokenString, func(t *jwt.Token) (interface{}, error) {
-		return []byte("secret-key"), nil
+func (u *middlewareUsecase) ParseAccessToken(tokenString string) (*jwtclaims.AccessClaims, error) {
+	claims := &jwtclaims.AccessClaims{}
+	_, err := jwt.ParseWithClaims(tokenString, claims, func(t *jwt.Token) (interface{}, error) {
+		return u.jwtSecret, nil
 	})
-
 	if err != nil {
-		return err
+		return nil, err
 	}
-	//ตรวจสอบว่า token นั้นถูกต้องหรือไม่ (token.Valid)
-	if !token.Valid {
-		return ErrInvalidToken
-	}
-
-	return nil
+	return claims, nil
 }

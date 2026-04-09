@@ -22,33 +22,26 @@ func NewMiddlewareHandler(middlewareUsecase middlewareUsecase.IMiddlewareUsecase
 	}
 }
 
+// CheckRole enforces admin access using role embedded in the JWT (set by CheckToken).
 func (h *middlewareHandler) CheckRole() fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		// ตรวจสอบว่า userId ถูกตั้งค่าใน context หรือไม่
-		userId := c.Get("userId")
-		if userId == "" {
-			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Unauthorized", "userId": userId})
+		uid, uok := c.Locals("userId").(string)
+		if !uok || strings.TrimSpace(uid) == "" {
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Unauthorized"})
 		}
 
-		// ตรวจสอบ role ของผู้ใช้
-		role, err := h.middlewareUsecase.CheckUserRole(userId)
-		if err != nil {
-			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Internal server error"})
-		}
-
-		// ตรวจสอบว่า role ตรงกับ requiredRole หรือไม่
-		if role != "admin" {
+		role, rok := c.Locals("role").(bool)
+		if !rok || !role {
 			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"error": "Forbidden access"})
 		}
 
-		// ถ้า role ถูกต้อง ให้ดำเนินการต่อ
 		return c.Next()
 	}
 }
 
+// CheckToken validates the Bearer JWT and stores userId and role in Locals for downstream handlers.
 func (h *middlewareHandler) CheckToken() fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		// Get the Authorization header
 		tokenString := c.Get("Authorization")
 		if tokenString == "" {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
@@ -56,21 +49,23 @@ func (h *middlewareHandler) CheckToken() fiber.Handler {
 			})
 		}
 
-		// Check if the token string starts with "Bearer"
 		if !strings.HasPrefix(tokenString, "Bearer ") {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 				"error": "Missing or malformed JWT",
 			})
 		}
 
-		// Remove "Bearer " prefix
 		tokenString = tokenString[len("Bearer "):]
 
-		// Verify the token
-		err := h.middlewareUsecase.VerifyToken(tokenString)
+		claims, err := h.middlewareUsecase.ParseAccessToken(tokenString)
 		if err != nil {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Invalid or expired JWT"})
 		}
+
+		c.Locals("userId", claims.UserID)
+		c.Locals("role", claims.Role)
+		c.Locals("username", claims.Username)
+
 		return c.Next()
 	}
 }

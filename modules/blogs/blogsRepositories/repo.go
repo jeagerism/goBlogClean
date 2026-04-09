@@ -132,7 +132,9 @@ func pagination(db *sqlx.DB, table string, limit, page int) *blogs.Pagination {
 	sqlCount := fmt.Sprintf("SELECT count(blog_id) FROM %s", table)
 
 	// ดึงจำนวนเรคคอร์ดทั้งหมดจากฐานข้อมูล
-	db.QueryRow(sqlCount).Scan(&recordCount)
+	if err := db.QueryRow(sqlCount).Scan(&recordCount); err != nil {
+		recordCount = 0
+	}
 
 	// คำนวณหน้าทั้งหมด
 	total := (recordCount / limit)

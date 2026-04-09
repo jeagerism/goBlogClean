@@ -1,6 +1,8 @@
 package usersrepositories
 
 import (
+	"database/sql"
+
 	"github.com/jeagerism/goBlogClean/modules/users"
 	"github.com/jmoiron/sqlx"
 )
@@ -43,7 +45,12 @@ func (r *userRepositories) CreateUser(req *users.SignupRequest) (*users.User, er
 func (r *userRepositories) GetUser(req *users.LoginRequest) (*users.User, error) {
 	query := "SELECT * FROM users WHERE username = $1"
 	var user users.User
-	r.db.Get(&user, query, req.Username)
+	if err := r.db.Get(&user, query, req.Username); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, sql.ErrNoRows
+		}
+		return nil, err
+	}
 
 	return &user, nil
 }
